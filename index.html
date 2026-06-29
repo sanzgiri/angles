@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Angles — a geometry puzzle game</title>
+  <meta name="description" content="A visual angle-puzzle game inspired by Geometry Snacks. Deduce the missing angle from the minimum given information." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>∠ Angles</h1>
+    <p class="tag">Find the missing angle. Use only what you're given.</p>
+  </header>
+
+  <main>
+    <section class="game">
+      <div class="meta">
+        <span id="puzzleTitle" class="title">—</span>
+        <span id="difficulty" class="diff" aria-label="difficulty"></span>
+      </div>
+
+      <div class="stage">
+        <svg id="figure" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" aria-label="figure"></svg>
+      </div>
+
+      <div class="prompt">
+        <label for="answer">x = </label>
+        <input id="answer" type="number" inputmode="numeric" step="1" min="0" max="360" placeholder="degrees" autocomplete="off" />
+        <span class="unit">°</span>
+        <button id="submitBtn" class="primary">Submit</button>
+        <button id="revealBtn" class="ghost">Reveal</button>
+        <button id="nextBtn" class="primary" style="display:none">Next ▸</button>
+      </div>
+
+      <div id="feedback" class="feedback" aria-live="polite"></div>
+
+      <details id="explainBox" class="explain">
+        <summary>Show reasoning</summary>
+        <div id="explain"></div>
+      </details>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <h3>Score</h3>
+        <div class="stats">
+          <div><span class="n" id="solved">0</span><span class="k">solved</span></div>
+          <div><span class="n" id="streak">0</span><span class="k">streak</span></div>
+          <div><span class="n" id="best">0</span><span class="k">best</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Mode</h3>
+        <div class="modes">
+          <label><input type="radio" name="mode" value="mixed" checked /> Mixed</label>
+          <label><input type="radio" name="mode" value="easy" /> Warm-up (★–★★)</label>
+          <label><input type="radio" name="mode" value="hard" /> Tricky (★★★+)</label>
+        </div>
+      </div>
+
+      <div class="card legend">
+        <h3>Legend</h3>
+        <ul>
+          <li><span class="sw given"></span> Given value</li>
+          <li><span class="sw unknown"></span> Find this (x)</li>
+          <li>Tick marks (∣, ∥) on edges → equal lengths</li>
+          <li>Arrowheads (▸, ▸▸) on lines → parallel</li>
+          <li>Little square at vertex → right angle (90°)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>How to play</h3>
+        <p>Each figure gives you the minimum info needed. Use vertical, supplementary, complementary, triangle-sum, isosceles, parallel-line, and exterior-angle rules to deduce <b>x</b>. Press <kbd>Enter</kbd> to submit, <kbd>N</kbd> for next.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <span>Inspired by <i>Geometry Snacks</i> · <a href="https://github.com/" target="_blank" rel="noopener">source</a></span>
+  </footer>
+
+  <script src="puzzles.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

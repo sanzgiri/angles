@@ -84,6 +84,26 @@ header .tag {
   .tab-panel.active { grid-template-columns: 1fr; }
 }
 
+/* Sudoku tab uses the full width — figure on top, info cards in a
+   responsive row below. The figure needs the room to be legible. */
+#tab-sudoku.active {
+  display: block;
+  max-width: 1200px;
+}
+#tab-sudoku .game { margin-bottom: 18px; }
+#tab-sudoku aside.side {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+#tab-sudoku .stage.sudoku-stage {
+  aspect-ratio: auto;
+  min-height: 560px;
+}
+@media (min-width: 1000px) {
+  #tab-sudoku .stage.sudoku-stage { min-height: 680px; }
+}
+
 .game {
   background: var(--panel);
   border: 1px solid var(--border);

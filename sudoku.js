@@ -144,7 +144,7 @@
         { id: 'C3', name: 'quad', vIdx: [8, 5, 2, 6] }, // bottom-right
         { id: 'C4', name: 'quad', vIdx: [7, 8, 6, 3] }, // bottom-left
       ];
-      const givenIdxs = ['C1@1', 'C2@1', 'C3@3', 'C4@0'];
+      const givenIdxs = ['C1@1', 'C2@2', 'C3@3', 'C4@0'];
       return { vertices, cells, givenIdxs };
     },
   });
@@ -174,7 +174,7 @@
         { id: 'C3', name: 'quad',     vIdx: [5, 2, 3, 4] },// Q-BR-BL-M
         { id: 'C4', name: 'triangle', vIdx: [4, 5, 0] },   // M-Q-TL
       ];
-      const givenIdxs = ['C1@1', 'C3@1', 'C4@1'];
+      const givenIdxs = ['C1@1', 'C2@1', 'C3@3', 'C4@1'];
       return { vertices, cells, givenIdxs };
     },
   });
@@ -205,7 +205,7 @@
         { id: 'C3', name: 'quad',     vIdx: [4, 5, 2, 3] },   // bottom band: P-Q-BR-BL
         { id: 'C4', name: 'triangle', vIdx: [3, 0, 4] },      // left tri: BL-TL-P
       ];
-      const givenIdxs = ['C1@1', 'C2@1', 'C3@2', 'C4@2'];
+      const givenIdxs = ['C1@1', 'C2@1', 'C3@3', 'C4@1', 'C1@3'];
       return { vertices, cells, givenIdxs };
     },
   });
@@ -220,15 +220,18 @@
     difficulty: 4,
     generate() {
       const x = BOX.x0, X = BOX.x1, y = BOX.y0, Y = BOX.y1;
-      const tx1 = jit(180, 18), tx2 = jit(320, 18);
-      const bx1 = jit(190, 18), bx2 = jit(310, 18);
-      const ly1 = jit(150, 18), ly2 = jit(260, 18);
-      const ry1 = jit(160, 18), ry2 = jit(250, 18);
-      // 4 interior vertices roughly at grid positions, jittered:
-      const i00 = [jit(180, 14), jit(160, 14)];
-      const i10 = [jit(320, 14), jit(150, 14)];
-      const i01 = [jit(180, 14), jit(260, 14)];
-      const i11 = [jit(320, 14), jit(250, 14)];
+      // Outer-edge midpoints — strong jitter so the dividing lines are
+      // visibly slanted and the resulting cells aren't near-rectangular.
+      const tx1 = jit(170, 26), tx2 = jit(320, 26);
+      const bx1 = jit(180, 26), bx2 = jit(330, 26);
+      const ly1 = jit(140, 22), ly2 = jit(250, 22);
+      const ry1 = jit(150, 22), ry2 = jit(260, 22);
+      // 4 interior vertices, jittered enough that no cell ends up
+      // near-rectangular.
+      const i00 = [jit(170, 22), jit(160, 22)];
+      const i10 = [jit(330, 22), jit(150, 22)];
+      const i11 = [jit(330, 22), jit(260, 22)];
+      const i01 = [jit(170, 22), jit(250, 22)];
       const vertices = [
         [x, y], [X, y], [X, Y], [x, Y],            // 0..3 corners
         [tx1, y], [tx2, y],                        // 4,5 top
@@ -251,12 +254,19 @@
         { id: 'C8', name: 'quad', vIdx: [15, 14, 8, 9] },
         { id: 'C9', name: 'quad', vIdx: [14, 7, 2, 8] },
       ];
-      // 11 givens (we have 11 dof on 36 unknowns):
+      // 12 givens chosen so the propagation solver completes:
+      //   • one angle at each of the 8 outer-edge midpoints (the other
+      //     angle in the 180° pair follows)
+      //   • three of the centre cell C5's four angles
+      //   • one edge-cell interior angle (C2@3 at V12) to break the
+      //     residual 1-dimensional ambiguity around the inner ring
       const givenIdxs = [
-        'C1@1', 'C2@1', 'C3@1',
-        'C4@1', 'C5@1', 'C6@1',
-        'C7@1', 'C8@1', 'C9@1',
-        'C5@2', 'C5@3',
+        'C1@1', 'C3@0',                  // top edge (V4, V5)
+        'C3@2', 'C9@1',                  // right edge (V6, V7)
+        'C9@3', 'C7@2',                  // bottom edge (V8, V9)
+        'C7@0', 'C1@3',                  // left edge (V10, V11)
+        'C5@0', 'C5@1', 'C5@2',          // 3 of C5's 4 interior-vertex angles
+        'C2@3',                          // one edge-cell interior angle
       ];
       return { vertices, cells, givenIdxs };
     },
@@ -271,73 +281,219 @@
       ? Math.floor(Math.random() * TEMPLATES.length)
       : templateIndex;
     const tpl = TEMPLATES[tplIdx];
-    let inst = null;
-    for (let attempt = 0; attempt < 80; attempt++) {
-      const cand = tpl.generate();
-      if (cand && validate(cand)) { inst = cand; break; }
-    }
-    if (!inst) throw new Error(`Could not instantiate template ${tpl.id}`);
 
-    // Compute the interior angle at every (cell, vertex-in-cell) pair.
-    const angles = [];
-    for (const cell of inst.cells) {
-      const n = cell.vIdx.length;
-      const pts = cell.vIdx.map(i => inst.vertices[i]);
-      for (let k = 0; k < n; k++) {
-        const prev = pts[(k - 1 + n) % n];
-        const cur  = pts[k];
-        const next = pts[(k + 1) % n];
-        const val = interiorAngle(prev, cur, next);
-        angles.push({
-          id: `${cell.id}@${k}`,
-          cellId: cell.id,
-          cellName: cell.name,
-          k,
-          vIdx: cell.vIdx[k],
-          prevPt: prev,
-          curPt: cur,
-          nextPt: next,
-          cellCentroid: centroid(pts),
-          value: val,                       // exact answer in degrees
-          rounded: Math.round(val),         // shown to the user (we accept ±0.5 tolerance)
-          isGiven: inst.givenIdxs.includes(`${cell.id}@${k}`),
-        });
+    const MAX_ATTEMPTS = 250;
+    let lastError = '';
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const cand = tpl.generate();
+      if (!cand || !validate(cand)) { lastError = 'geometry rejected'; continue; }
+
+      // Compute the interior angle at every (cell, vertex-in-cell) pair.
+      const angles = [];
+      for (const cell of cand.cells) {
+        const n = cell.vIdx.length;
+        const pts = cell.vIdx.map(i => cand.vertices[i]);
+        for (let k = 0; k < n; k++) {
+          const prev = pts[(k - 1 + n) % n];
+          const cur  = pts[k];
+          const next = pts[(k + 1) % n];
+          const val = interiorAngle(prev, cur, next);
+          angles.push({
+            id: `${cell.id}@${k}`,
+            cellId: cell.id,
+            cellName: cell.name,
+            k,
+            vIdx: cell.vIdx[k],
+            prevPt: prev,
+            curPt: cur,
+            nextPt: next,
+            cellCentroid: centroid(pts),
+            floatValue: val,                // exact geometric angle
+            value: Math.round(val),         // integer answer (after snap)
+            isGiven: cand.givenIdxs.includes(`${cell.id}@${k}`),
+          });
+        }
+      }
+      // Build constraints (cell-sum + vertex-sum).
+      const constraints = listConstraints(cand, angles);
+
+      // STEP 1: snap rounded values so every constraint is exactly satisfied.
+      if (!snapToConsistentIntegers(angles, constraints)) {
+        lastError = 'rounding could not satisfy constraints';
+        continue;
+      }
+
+      // STEP 2: hard-verify every constraint with the snapped integers.
+      if (!verifyConstraints(angles, constraints)) {
+        lastError = 'verifyConstraints failed (internal bug)';
+        continue;
+      }
+
+      // STEP 3: verify the puzzle is solvable by simple propagation from
+      // the chosen givens. Otherwise the player would have ambiguous unknowns.
+      const solve = propagateGivens(angles, constraints);
+      if (!solve.solved) {
+        lastError = `unsolvable from givens (${solve.knownCount}/${angles.length} after propagation)`;
+        continue;
+      }
+
+      // STEP 4: after snap, no cell may be integer-rectangular (all
+      // angles == 90). Such a cell is visually flat and pedagogically dull.
+      let rectCellAfterSnap = false;
+      for (const cell of cand.cells) {
+        if (cell.vIdx.length !== 4) continue;
+        const cellAngles = angles.filter(a => a.cellId === cell.id);
+        if (cellAngles.every(a => a.value === 90)) { rectCellAfterSnap = true; break; }
+      }
+      if (rectCellAfterSnap) {
+        lastError = 'a cell snapped to a perfect rectangle (all 90°)';
+        continue;
+      }
+
+      return {
+        templateId: tpl.id,
+        templateLabel: tpl.label,
+        size: tpl.size,
+        difficulty: tpl.difficulty,
+        description: tpl.description,
+        vertices: cand.vertices,
+        cells: cand.cells,
+        angles,
+        constraints,
+        solveOrder: solve.derivedOrder,
+      };
+    }
+    throw new Error(`Could not generate valid puzzle from template '${tpl.id}' after ${MAX_ATTEMPTS} attempts (last reason: ${lastError})`);
+  }
+
+  // Constraint-respecting rounding. After Math.round() each angle individually,
+  // hill-climb ±1 adjustments to bring every constraint's integer sum to its
+  // target. Never let any value drift more than MAX_DRIFT degrees from the
+  // true geometric angle.
+  function snapToConsistentIntegers(angles, constraints) {
+    const MAX_DRIFT = 3;     // degrees from geometric truth
+    const MAX_ITERS = 1000;
+    const byId = new Map();
+    for (const a of angles) byId.set(a.id, a);
+
+    function constraintError(c) {
+      let s = 0;
+      for (const id of c.members) s += byId.get(id).value;
+      return c.target - s;     // positive: need to add; negative: need to subtract
+    }
+    function totalError() {
+      let t = 0;
+      for (const c of constraints) t += Math.abs(constraintError(c));
+      return t;
+    }
+
+    let curErr = totalError();
+    if (curErr === 0) return true;
+
+    for (let iter = 0; iter < MAX_ITERS; iter++) {
+      // Try every single-angle ±1 move; pick the one that most reduces
+      // total error (ties broken toward the move that stays closer to float).
+      let bestGain = 0, bestA = null, bestDelta = 0, bestDrift = Infinity;
+      for (const a of angles) {
+        for (const d of [+1, -1]) {
+          const newVal = a.value + d;
+          const drift = Math.abs(newVal - a.floatValue);
+          if (drift > MAX_DRIFT) continue;
+          a.value = newVal;
+          const e = totalError();
+          a.value -= d;       // undo
+          const gain = curErr - e;
+          if (gain > bestGain || (gain === bestGain && gain > 0 && drift < bestDrift)) {
+            bestGain = gain; bestA = a; bestDelta = d; bestDrift = drift;
+          }
+        }
+      }
+      if (!bestA || bestGain <= 0) break;
+      bestA.value += bestDelta;
+      curErr -= bestGain;
+      if (curErr === 0) return true;
+    }
+    return curErr === 0;
+  }
+
+  // After snap: assert every constraint integer-sums to its target.
+  function verifyConstraints(angles, constraints) {
+    const byId = new Map();
+    for (const a of angles) byId.set(a.id, a);
+    for (const c of constraints) {
+      let s = 0;
+      for (const id of c.members) s += byId.get(id).value;
+      if (s !== c.target) return false;
+    }
+    return true;
+  }
+
+  // Propagation solver: starting from the given angles, repeatedly find any
+  // constraint with exactly one unknown member and derive that member.
+  // Returns { solved, knownCount, derivedOrder }.
+  function propagateGivens(angles, constraints) {
+    const byId = new Map();
+    for (const a of angles) byId.set(a.id, a);
+    const known = new Set();
+    // Givens are always known.
+    for (const a of angles) if (a.isGiven) known.add(a.id);
+    // The 4 outer corners of the rectangle: every cell-angle there contributes
+    // to a corner-sum constraint, and if a corner is touched by only one cell
+    // then that angle is auto-known = 90°. The propagator picks these up via
+    // the corner-sum constraint anyway, so no special case is needed.
+
+    const derivedOrder = [];
+    let changes = true;
+    while (changes) {
+      changes = false;
+      for (const c of constraints) {
+        let unknownId = null;
+        let knownSum = 0;
+        let unknownCount = 0;
+        for (const id of c.members) {
+          if (known.has(id)) knownSum += byId.get(id).value;
+          else { unknownCount += 1; unknownId = id; }
+        }
+        if (unknownCount === 1) {
+          const derived = c.target - knownSum;
+          // Sanity: the derived value should match the snapped integer answer.
+          if (derived !== byId.get(unknownId).value) {
+            // This means the puzzle is internally inconsistent — the
+            // propagator says one thing but snapToConsistentIntegers stored
+            // another. Treat as failure.
+            return { solved: false, knownCount: known.size, derivedOrder, error: 'derivation mismatch' };
+          }
+          known.add(unknownId);
+          derivedOrder.push({ id: unknownId, via: c.kind || c.text || 'constraint', value: derived });
+          changes = true;
+        }
       }
     }
-    // Add constraints (purely informational for now).
-    const constraints = listConstraints(inst, angles);
     return {
-      templateId: tpl.id,
-      templateLabel: tpl.label,
-      size: tpl.size,
-      difficulty: tpl.difficulty,
-      description: tpl.description,
-      vertices: inst.vertices,
-      cells: inst.cells,
-      angles,
-      constraints,
+      solved: known.size === angles.length,
+      knownCount: known.size,
+      derivedOrder,
     };
   }
 
   // Sanity check on an instantiated template: no cell is rectangular, all
-  // cells are convex, no two vertices coincide.
+  // cells are convex, no two vertices coincide. The bounding rectangle's
+  // four outer corners are 90° by construction — but **no interior cell**
+  // should come out (near-)rectangular, because that trivialises every
+  // angle in it to 90° and visually flattens the puzzle.
   function validate(inst) {
     if (!inst || !inst.cells) return false;
-    let rectCount = 0;
     for (const cell of inst.cells) {
       const n = cell.vIdx.length;
       const pts = cell.vIdx.map(i => inst.vertices[i]);
-      // convexity: all interior angles < 180
-      // rectangular check: all 4 angles within 2° of 90°
-      let allNear90 = (n === 4);
+      let near90 = (n === 4);
       for (let k = 0; k < n; k++) {
         const ang = interiorAngle(pts[(k-1+n)%n], pts[k], pts[(k+1)%n]);
-        if (ang < 8 || ang > 172) return false; // too degenerate
-        if (Math.abs(ang - 90) > 2) allNear90 = false;
+        if (ang < 10 || ang > 170) return false;          // too degenerate
+        if (Math.abs(ang - 90) > 4) near90 = false;        // > 4° off → not rect
       }
-      if (allNear90) rectCount++;
+      if (near90) return false;                           // reject ALL rectangles
     }
-    if (rectCount > 1) return false;
     return true;
   }
 
@@ -348,11 +504,11 @@
     for (const cell of inst.cells) {
       const n = cell.vIdx.length;
       out.push({
-        kind: 'cell-sum',
+        kind: `cell-sum-${cell.id}`,
         text: `${cellName(cell.name)} (${cell.id}): angles sum to ${(n - 2) * 180}°`,
         cellId: cell.id,
         members: angles.filter(a => a.cellId === cell.id).map(a => a.id),
-        total: (n - 2) * 180,
+        target: (n - 2) * 180,
       });
     }
     // Vertex sums
@@ -368,11 +524,11 @@
       else if (isOuterEdge(p)) { total = 180; label = '180° on the outer edge'; }
       else { total = 360; label = '360° around an interior vertex'; }
       out.push({
-        kind: 'vertex-sum',
+        kind: `vertex-sum-${vIdx}`,
         text: `Vertex ${vIdx}: ${label} (${group.length} cell-angle${group.length>1?'s':''})`,
         vIdx,
         members: group.map(g => g.id),
-        total,
+        target: total,
       });
     }
     return out;
@@ -415,7 +571,7 @@
       // by the right-angle square. They still exist as angles for the puzzle's
       // bookkeeping, but we don't redraw them as wedges.
       const v = puzzle.vertices[a.vIdx];
-      const isPlainCornerSingle = isOuterCorner(v) && Math.abs(a.value - 90) < 1.0
+      const isPlainCornerSingle = isOuterCorner(v) && a.value === 90
                                   && puzzle.angles.filter(b => b.vIdx === a.vIdx).length === 1;
       if (isPlainCornerSingle) continue;
 
@@ -431,7 +587,7 @@
       const labelPos = pt(cx, cy, r + labelOffset(a, puzzle), bisect(candA.a1, candA.a2));
       if (a.isGiven) {
         parts.push(wedge(cx, cy, r, candA.a1, candA.a2, GIVEN));
-        parts.push(`<text x="${fmt(labelPos[0])}" y="${fmt(labelPos[1] + 4)}" text-anchor="middle" font-size="13" font-weight="700" fill="${GIVEN}">${a.rounded}°</text>`);
+        parts.push(`<text x="${fmt(labelPos[0])}" y="${fmt(labelPos[1] + 4)}" text-anchor="middle" font-size="13" font-weight="700" fill="${GIVEN}">${a.value}°</text>`);
       } else {
         // Wrap unknown wedge in a clickable group.
         parts.push(`<g class="wedge unk" data-aid="${a.id}" data-cx="${fmt(labelPos[0])}" data-cy="${fmt(labelPos[1])}">`);

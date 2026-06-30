@@ -48,15 +48,34 @@ never trivialised by axis-aligned cuts. The constraints fall out for free:
 
 Milestone-1 templates (hand-authored, randomised each play):
 
-| Template            | Size | Cells          | Difficulty |
-| ------------------- | ---- | -------------- | ---------- |
-| Pinwheel            | 2×2  | 4 quads        | ★★         |
-| Fan with Notch      | 2×2  | 3 tri + 1 quad | ★★         |
-| Two-Point Mosaic    | 2×2  | 2 quad + 2 tri | ★★★       |
-| Irregular Grid 9    | 3×3  | 9 quads        | ★★★★     |
+| Template            | Size | Cells          | Givens | Difficulty |
+| ------------------- | ---- | -------------- | ------ | ---------- |
+| Pinwheel            | 2×2  | 4 quads        | 4      | ★★         |
+| Fan with Notch      | 2×2  | 3 tri + 1 quad | 4      | ★★         |
+| Two-Point Mosaic    | 2×2  | 2 quad + 2 tri | 5      | ★★★       |
+| Irregular Grid 9    | 3×3  | 9 quads        | 12     | ★★★★     |
 
-Milestone 2 (next): constraint solver (so any tiling can auto-pick its
-minimal givens for a target difficulty) + a procedural tiling generator.
+Every generated puzzle is run through three checks before being shown
+to the player:
+
+1. **Constraint-respecting integer rounding.** Geometric float angles
+   are snapped to integers via hill-climb on ±1 adjustments, until every
+   cell-sum, vertex-sum, edge-sum, and corner-sum constraint is exactly
+   satisfied. (No more triangles summing to 179°.)
+2. **Solvability via propagation.** A deterministic solver starts from
+   the chosen givens and repeatedly fills in any constraint with a single
+   unknown member. The puzzle is only accepted if the solver reaches
+   every angle. (No more “I can’t deduce this from what’s shown”.)
+3. **No accidental rectangles.** Any cell whose snapped integers come
+   out as all 90° is rejected (the entire layout is regenerated).
+
+These checks are also exercised by `_sudoku_smoke.js`, which generates
+each template 200 times and asserts (a)–(e).
+
+Milestone 2 (next): replace hand-picked givens with auto-selected
+minimal-given sets (the same solver can rate a puzzle’s difficulty by
+longest deduction chain). Add a Hint button. Add procedurally generated
+tilings so the variety is unbounded.
 
 ## Run
 

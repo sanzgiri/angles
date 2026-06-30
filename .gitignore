@@ -1,6 +1,9 @@
 _preview/
+_preview_sudoku/
 _smoketest.js
+_sudoku_smoke.js
 _render.js
+_sudoku_render.js
 _preview.js
 preview.html
 .DS_Store

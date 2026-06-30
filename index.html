@@ -4,16 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Angles — a geometry puzzle game</title>
-  <meta name="description" content="A visual angle-puzzle game inspired by Geometry Snacks. Deduce the missing angle from the minimum given information." />
+  <meta name="description" content="A visual angle-puzzle game inspired by Geometry Snacks. Two modes: deduce a single missing angle, or fill in every angle of a planar tiling." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <h1>∠ Angles</h1>
-    <p class="tag">Find the missing angle. Use only what you're given.</p>
+    <p class="tag">A geometry puzzle game. Two ways to play.</p>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="findx" role="tab" aria-selected="true">Find x</button>
+      <button class="tab" data-tab="sudoku" role="tab" aria-selected="false">Find all angles</button>
+    </nav>
   </header>
 
-  <main>
+  <!-- ===================== MODE 1: Find x ===================== -->
+  <main id="tab-findx" class="tab-panel active">
     <section class="game">
       <div class="meta">
         <span id="puzzleTitle" class="title">—</span>
@@ -78,11 +83,101 @@
     </aside>
   </main>
 
+  <!-- ===================== MODE 2: Find all angles ===================== -->
+  <main id="tab-sudoku" class="tab-panel">
+    <section class="game">
+      <div class="meta">
+        <span class="title">
+          <span id="sTitle">—</span>
+          <span id="sSize" class="size"></span>
+        </span>
+        <span id="sDiff" class="diff"></span>
+      </div>
+
+      <div class="stage sudoku-stage">
+        <svg id="sudokuFigure" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" aria-label="tiling"></svg>
+        <div id="sudokuInput" class="popup-input" style="display:none">
+          <input id="sudokuInputField" type="number" inputmode="numeric" step="1" min="1" max="359" autocomplete="off" />
+          <span class="unit">°</span>
+        </div>
+      </div>
+
+      <div class="progress">
+        <div class="progress-bar"><div id="sBarFill" class="progress-fill"></div></div>
+        <span class="progress-text"><b id="sFound">0</b> / <span id="sTotal">0</span> angles found</span>
+      </div>
+
+      <div class="actions">
+        <button id="sNextBtn" class="primary">New tiling ▸</button>
+        <button id="sRevealBtn" class="ghost">Reveal all</button>
+      </div>
+
+      <div id="sFeedback" class="feedback" aria-live="polite"></div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <h3>Template</h3>
+        <select id="sTemplateSel" class="template-sel">
+          <option value="-1">Random</option>
+        </select>
+        <p class="muted" id="sDesc" style="margin:8px 0 0;font-size:13px"></p>
+      </div>
+
+      <div class="card legend">
+        <h3>Legend</h3>
+        <ul>
+          <li><span class="sw given"></span> Given angle</li>
+          <li><span class="sw unknown"></span> Unknown (click to fill)</li>
+          <li><span class="sw solved"></span> Correctly solved</li>
+          <li>Outer rectangle's corners are 90° each.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Rules to use</h3>
+        <ul class="rules">
+          <li><b>Triangle</b> angles sum to <b>180°</b>.</li>
+          <li><b>Quadrilateral</b> sums to <b>360°</b>.</li>
+          <li><b>Pentagon</b> sums to <b>540°</b>; <b>hexagon</b> 720°.</li>
+          <li>Angles around an <b>interior vertex</b> sum to <b>360°</b>.</li>
+          <li>Angles on a <b>straight outer edge</b> sum to <b>180°</b>.</li>
+          <li>Angles at an <b>outer corner</b> of the rectangle sum to <b>90°</b>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>How to play</h3>
+        <p>Click any <span style="color:#9aa0a6">dashed grey wedge</span> to type its value. Correct entries lock in green. Fill every angle to win. Press <kbd>Esc</kbd> to cancel.</p>
+      </div>
+    </aside>
+  </main>
+
   <footer>
-    <span>Inspired by <i>Geometry Snacks</i> · <a href="https://github.com/" target="_blank" rel="noopener">source</a></span>
+    <span>Inspired by <i>Geometry Snacks</i> · <a href="https://github.com/sanzgiri/angles" target="_blank" rel="noopener">source on GitHub</a></span>
   </footer>
 
   <script src="puzzles.js"></script>
   <script src="app.js"></script>
+  <script src="sudoku.js"></script>
+  <script src="sudoku-app.js"></script>
+  <script>
+    // Tab toggle
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        document.querySelectorAll('.tab').forEach(b => {
+          const on = b.dataset.tab === target;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.toggle('active', p.id === 'tab-' + target);
+        });
+        // Tell the sudoku app it became visible (so it can render if not yet)
+        if (target === 'sudoku' && window.SudokuApp) window.SudokuApp.onShow();
+      });
+    });
+  </script>
 </body>
 </html>

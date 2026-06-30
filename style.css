@@ -5,6 +5,8 @@
   --muted: #6b6b6b;
   --given: #1565c0;   /* blue */
   --unknown: #c62828; /* red */
+  --solved: #0f9d58;  /* green */
+  --grey-unk: #9aa0a6;
   --rule: #444;
   --accent: #0f9d58;
   --warn: #d93025;
@@ -25,7 +27,7 @@ body {
 
 header {
   text-align: center;
-  padding: 28px 20px 8px;
+  padding: 24px 20px 0;
 }
 header h1 {
   margin: 0;
@@ -34,22 +36,52 @@ header h1 {
   letter-spacing: -0.02em;
 }
 header .tag {
-  margin: 6px 0 0;
+  margin: 6px 0 12px;
   color: var(--muted);
   font-size: 15px;
 }
 
-main {
-  flex: 1;
+/* Tabs */
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #efeae1;
+  border: 1px solid var(--border);
+  margin: 0 auto 14px;
+}
+.tab {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 7px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab:hover { color: var(--ink); }
+.tab.active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.tab-panel {
+  display: none;
+}
+.tab-panel.active {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
   max-width: 1100px;
-  margin: 16px auto 0;
+  margin: 4px auto 0;
   padding: 0 20px 32px;
 }
 @media (max-width: 860px) {
-  main { grid-template-columns: 1fr; }
+  .tab-panel.active { grid-template-columns: 1fr; }
 }
 
 .game {
@@ -88,7 +120,7 @@ main {
   justify-content: center;
   overflow: hidden;
 }
-#figure {
+#figure, #sudokuFigure {
   width: 100%;
   height: 100%;
   display: block;
@@ -205,6 +237,98 @@ aside.side { display: flex; flex-direction: column; gap: 14px; }
 .legend .sw { display: inline-block; width: 14px; height: 14px; border-radius: 50%; }
 .legend .sw.given { background: var(--given); }
 .legend .sw.unknown { background: var(--unknown); }
+.legend .sw.solved { background: var(--solved); }
+.muted { color: var(--muted); }
+
+/* ===================== Sudoku mode ===================== */
+.sudoku-stage { position: relative; }
+.popup-input {
+  position: absolute;
+  z-index: 5;
+  background: #fff;
+  border: 2px solid var(--given);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  padding: 2px 4px 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.popup-input input {
+  width: 52px;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 2px 0;
+  background: transparent;
+  -moz-appearance: textfield;
+}
+.popup-input input::-webkit-outer-spin-button,
+.popup-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.popup-input input.wrong {
+  color: var(--warn);
+  animation: shake .3s;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.popup-input .unit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Unknown wedge — clickable, hover state */
+#sudokuFigure .wedge.unk { cursor: pointer; }
+#sudokuFigure .wedge.unk:hover path { fill-opacity: 0.18 !important; stroke-width: 2 !important; }
+
+.meta .size {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 14px;
+  margin-left: 6px;
+}
+.template-sel {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #efeae1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--solved);
+  width: 0%;
+  transition: width .25s ease;
+}
+.progress-text b { color: var(--ink); }
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.rules { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink); }
+.rules li { margin: 3px 0; }
 
 kbd {
   background: #f3efe7;

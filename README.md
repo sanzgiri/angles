@@ -1,4 +1,4 @@
-# ∠ Angles — a geometry puzzle game
+# ∠ Angledoku — a geometry angle-puzzle game
 
 A small, replayable web game inspired by *Geometry Snacks* (Ed Southall &
 Vincent Pantaloni). Two ways to play, switched via the tab toggle:
